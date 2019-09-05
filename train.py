@@ -18,7 +18,9 @@ def train(train_iter, dev_iter, model, args):
     for epoch in range(1, args.epochs+1):
         for batch in train_iter:
             feature, target = batch.text, batch.label
-            feature.data.t_(), target.data.sub_(1)  # batch first, index align
+            # feature.data.t_(), target.data.sub_(1)  # batch first, index align
+            feature = feature.data.t()  # x.t() x是不变的，所以重新赋值
+            target = target.data.sub(1)  # x.sub() x是不变的，所以重新赋值
             if args.cuda:
                 feature, target = feature.cuda(), target.cuda()
 
@@ -37,7 +39,7 @@ def train(train_iter, dev_iter, model, args):
                 accuracy = 100.0 * corrects/batch.batch_size
                 sys.stdout.write(
                     '\rBatch[{}] - loss: {:.6f}  acc: {:.4f}%({}/{})'.format(steps, 
-                                                                             loss.data[0], 
+                                                                             loss.item(),
                                                                              accuracy,
                                                                              corrects,
                                                                              batch.batch_size))
@@ -60,14 +62,16 @@ def eval(data_iter, model, args):
     corrects, avg_loss = 0, 0
     for batch in data_iter:
         feature, target = batch.text, batch.label
-        feature.data.t_(), target.data.sub_(1)  # batch first, index align
+        # feature.data.t_(), target.data.sub_(1)  # batch first, index align
+        feature = feature.data.t()  # x.t() x是不变的，所以重新赋值
+        target = target.data.sub(1)  # x.sub() x是不变的，所以重新赋值
         if args.cuda:
             feature, target = feature.cuda(), target.cuda()
 
         logit = model(feature)
         loss = F.cross_entropy(logit, target, size_average=False)
 
-        avg_loss += loss.data[0]
+        avg_loss += loss.item()
         corrects += (torch.max(logit, 1)
                      [1].view(target.size()).data == target.data).sum()
 
